@@ -3,4 +3,5 @@ polars
 pyarrow
 plotnine
 scikit-learn
-
+plotly
+nbformat
