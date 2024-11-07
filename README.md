@@ -14,8 +14,8 @@ In addition Tunnel Score only considers the difference between 2D locations of t
 
 Estimate the time it took the baseball to travel from release point to 50ft from home plate (the point where we have measurements for a &v in x, y, z dimensions)
 
-```latex
-$t_{50} = \frac{(60 + 9/12) - 50 - extension}{vft * 1.05}$
+```math
+t_{50} = \frac{(60 + 9/12) - 50 - extension}{vft * 1.05}
 ```
 
 Where ...
@@ -34,8 +34,8 @@ I multiply the velocity by 1.05 in order to dialate the time by 5%. This makes o
 
 For this I use the kinematic equations with the acceleration, velocity and now our time estimate, $t_{50}$, to calculate displacement in each dimension.
 
-```latex
-$d_{50} = r_{dim} + v_{dim} * t_{50} * \frac{1}{2} * a_{dim} * t_{50}^2$
+```math
+d_{50} = r_{dim} + v_{dim} * t_{50} * \frac{1}{2} * a_{dim} * t_{50}^2
 ```
 
 Where ...
@@ -59,8 +59,8 @@ Now we can make an estimate of where the ball is in all dimensions, at any given
 
 For this I use the same formula that I used to esimate position at 50ft. from home plate, except I start from that 50ft. mark by calculating the difference in time between $t_{50}$ and $t_{i}$.
 
-```latex
-d_{i} = p_{50} + v_{50} * (t_{50} - t_{i}) * \frac{1}{2} * a_{50} * (t_{50} - t_{i})^2$
+```math
+d_{i} = p_{50} + v_{50} * (t_{50} - t_{i}) * \frac{1}{2} * a_{50} * (t_{50} - t_{i})^2
 ```
 
 Where ...
