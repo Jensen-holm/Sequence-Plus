@@ -103,13 +103,17 @@ I worked backwards from the 50ft. from home plate mark, and tried to estimate re
 
 Once I have this data, I map each pitch with the one that was previously thrown and add them as features with the prefix `prev_`.
 
+All of the code for both sequencing and the added features, including 3D metrics, is located in [feature_engineering.ipynb](notebooks/feature_engineering.ipynb)
+
+After feature engineering is done, I serialize the polars LazyFrame graph into [data/sequence_pitches_lf](data/sequence_pitches_lf) where I then pick it up in [notebooks/feature_selection.ipynb](notebooks/feature_selection.ipynb)
+
 # Road Map
 
-[ x ] Feature Engineering
-[ ] Feature Selection
-[ ] Model Building
-[ ] Evaluation
-[ ] Deploy in HuggingFace Dashboard
+- [ x ] Feature Engineering
+- [ ] Feature Selection
+- [ ] Model Building
+- [ ] Evaluation
+- [ ] Deploy in HuggingFace Dashboard
 
 # References
 
