@@ -1,67 +1,107 @@
-# Tunnel+
+# Sequence+
+
+The main goal of Sequence+ is to create a model like [Stuff+](), [Location+](), and [Pitcher+]() that aims to measure the run value of a pitch sequence. Sequence+ will be made using features related to tunneling, and a mix of things that are typically included in [Location+]() and [Stuff+]().
+
+# Tunneling
 
 Earlier this year I created [Tunnel Score]() to try and quantify how well any given two pitch sequence was tunneled. Overall it doesn't do a bad job, but it is hard to capture how 'good' a pitch was truly tunneled with just this one number. 
 
 In addition Tunnel Score only considers the difference between 2D locations of the ball when they cross the plate, and where they would have crossed the plate without induced movement. This could be improved by considering the 3D distance between pitches in a two pitch sequence at [decision time]() (~0.12 seconds) and [commit time]() (~0.167 seconds) into the balls flight path. 
 
-## Approach
+# 3D pitch displacement calculation
 
-Tunnel+, like [Stuff+](), [Location+](), and [Pitcher+](), will be a machine learning model built to predict the run value of a pitch. The difference will be that of course Tunnel+ will incorporate pitch tunneling related features.
+## Step 1: Time to 50ft. from home plate
 
-## Feature Engineering
+Estimate the time it took the baseball to travel from release point to 50ft from home plate (the point where we have measurements for a &v in x, y, z dimensions)
 
-| Feature Name | Description |
-|------|-------------|
-| **delta_run_exp** | run value associated with the pitch outcome from `run_values_24`| 
-| **x_0.120** | position in the x dimension of the pitch at decision time (~0.12s) |
-| **y_0.120** | position in the y dimension of the pitch at decision time (~0.12s) |
-| **z_0.120** | position in the z dimension of the pitch at decision time (~0.12s) |
-| **x_0.167** | position in the x dimension of the pitch at commit time (~0.167s) |
-| **y_0.167** | position in the y dimension of the pitch at commit time (~0.167s) |
-| **z_0.167** | position in the z dimension of the pitch at commit time (~0.167s) |
-| **velocity_diff** | difference in velocity between pitches in a two pitch sequence |
-| **effective_velocity_diff** | difference in effective velocity between pitches in a two pitch sequence |
-| **pfx_x_diff** | difference in horizontal movement between pitches in a two pitch sequence |
-| **pfx_z_diff** | difference in vertical movement between pitches in a two pitch sequence |
-| **3d_dist_0.167** | 3D euclidean distance between pitches in a two pitch sequence 0.167 seconds after release |
-| **3d_dist_0.120** | 3D distance between pitches in a two pitch sequence at 0.120 seconds after release |
-| **distance** | 2D euclidean distance between pitch locations when crossing the plate in a two pitch sequence |
-| **seq_delta_run_exp** | sum of `delta_run_exp` in a two pitch sequence |
-| **plate_x_diff** | difference in plate_x between pitches in a two pitch sequence |
-| **plate_z_diff** | difference in plate_z between pitches in a two pitch sequence |
+$t_{50} = \frac{(60 + 9/12) - 50 - extension}{vft * 1.05}$
 
-In order to not confuse the model with the difference between LHP and RHP position metrics, I mirrored LHP movement & release position metrics to reflect RHP
+Where ...
+- $extension = $ distance from the rubber where the pitch was released<br>
+- $vft = $ release_speed in ft/s
 
-<div height="200" width="200" align="center">
-    <img src="assets/mirrored_lhp_to_rhp.png" alt="mirrored LHP 2 RHP plot">
+I multiply the velocity by 1.05 in order to dialate the time by 5%. This makes our estimation of position more accurate because it helps account for error that we get from assuming that acceleration is constant in the kinematic equations for displacement.
+
+**New Features**
+- `t50`: estimated time it took the ball to get to 50ft. from home plate
+- `release_pos_y`: release position in the y dimension converted to feet
+
+## Step 2: x, y, & z positions at 50ft. from home plate
+
+For this I use the kinematic equations with the acceleration, velocity and now our time estimate, $t_{50}$, to calculate displacement in each dimension.
+
+$d_{50} = r_{dim} + v_{dim} * t_{50} * \frac{1}{2} * a_{dim} * t_{50}^2$
+
+Where ...
+- $r_{dim} = $ release position in x, y or z dimension
+- $v_{dim} = $ velocity at 50ft. from home plate in x, y or z dimension
+- $a_{dim} = $ acceleration at 50ft. from home plate in x, y or z dimension
+- $t_{50} = $ estimated time that it took to get to 50ft. from home plate from step 1
+
+**New Features**
+- `x50`: position in the x dimension when the ball is 50ft. from home plate
+- `y50`: position in the y dimension when the ball is 50ft. from home plate
+- `z50`: position in the z dimension when the ball is 50ft. from home plate
+
+## Step 3: Estimate 3D positions at commit time & decision time
+
+Now we can make an estimate of where the ball is in all dimensions, at any given time. But I am interested specifically in 0.120 seconds after release (commit time), and 0.167 seconds after release (decision time).
+
+For this I use the same formula that I used to esimate position at 50ft. from home plate, except I start from that 50ft. mark by calculating the difference in time between $t_{50}$ and $t_{i}$.
+
+$d_{i} = p_{50} + v_{50} * (t_{50} - t_{i}) * \frac{1}{2} * a_{50} * (t_{50} - t_{i})^2$
+
+Where ...
+- $p_{50} = $ position in x, y, or z dimension at 50 ft. from home plate
+
+I am assuming that both $v$ and $a$ are constant, again using a 5% time dilation as a crutch to help account for this.
+
+**New Features**
+- `x_0.120`: position in the x dimension at 0.120 seconds after release (commit time)
+- `y_0.120`: position in the y dimension at 0.120 seconds after release (commit time)
+- `y_0.120`: position in the z dimension at 0.120 seconds after release (commit time)
+- `x_0.167`: position in the x dimension at 0.120 seconds after release (decision time)
+- `y_0.167`: position in the y dimension at 0.120 seconds after release (decision time)
+- `y_0.167`: position in the z dimension at 0.120 seconds after release (decision time)
+- `x_plate`: position in the x dimension when the ball crossed the plate
+- `y_plate`: position in the y dimension when the ball crossed the plate
+- `z_plate`: position in the z dimension when the ball crossed the plate
+
+**Visualization & Accuracy** <br>
+In order to make sure that this works, I created a plot of some randomly sampled pitches thrown by Yu Darvish this season.
+
+- `Sweeper`: Purple
+- `Splitter`: Yellow
+- `Slider`: Green
+- `Knuckle Curve`: Blue
+- `Four Seam Fastball`: Red
+
+<div height="200" width="200">
+    <img src="assets/darvish_sample_pitches.png" alt="Sampled Yu Darvish 3D pitch Shape Estimation">
 </div>
 
-### 3d pitch displacement calculation
+I worked backwards from the 50ft. from home plate mark, and tried to estimate release position. Comparing this to actual release position will help me get an idea of how accurate / inaccurate this is.
 
-Plugging in our pitch data into the kinematic equation for displacement below, I can solve for where the ball is at a given time $t$
+<div height="50" width="50">
+    <img src="assets/ball_loc_accuracy_table.png" alt="Position Estimation Accuracy">
+</div>
 
-$d = pos_{i} + v_{i} * t + \frac{1}{2} * a * t^{2}$
+# Sequencing
 
-**where**:
-- $t$ = time (seconds)
-- $v_{i}$ = velocity at time $t$ in dimension $i$
-- $a_{i}$ = acceleration at time $t$ in dimension $i$
-- $pos_{i}$ = start position in dimension $i$
+Once I have this data, I map each pitch with the one that was previously thrown and add them as features with the prefix `prev_`.
 
-statcast (*almost*) gives us this data in the form of ...
+# Road Map
 
-- `vx0`: velocity of ball in x dimension at 50ft.
-- `vy0`: velocity of ball in y dimension at 50ft.
-- `vz0`: velocity of ball in z dimension at 50ft.
-- `ax`: acceleration of ball in x dimension at 50ft.
-- `ay`: acceleration of ball in y dimension at 50ft.
-- `az`: acceleration of ball in z dimension at 50ft.
-- `release_pos_x`: x position at release
-- `release_pos_y`: y position at release
-- `release_pos_z`: z position at release
+[ x ] Feature Engineering
+[ ] Feature Selection
+[ ] Model Building
+[ ] Evaluation
+[ ] Deploy in HuggingFace Dashboard
 
-For this project, as of now I am just assuming these numbers to be constant throughout ball flight even though they are not. Should be good enough.
+# References
 
-## Feature Selection
+[statcast-era-pitches]() <br>
+Used this huggingface dataset to effeciently load dataset of pitches thrown from 2017-present.
 
-## Model
+[Carter Kessinger](https://x.com/ckessinger44) & [Johnny Davis](https://x.com/Johnny_Davis12)<br>
+These guys sparked the idea for using kinematic equations for 3D distances at commit & decision points for a better [TunnelScore]().
