@@ -89,15 +89,11 @@ In order to make sure that this works, I created a plot of some randomly sampled
 - `Knuckle Curve`: Blue
 - `Four Seam Fastball`: Red
 
-<div height="200" width="200">
-    <img src="assets/darvish_sample_pitches.png" alt="Sampled Yu Darvish 3D pitch Shape Estimation">
-</div>
+![Sampled Darvish 3D pitch Shape Estimations](assets/darvish_sample_pitches.png)
 
 I worked backwards from the 50ft. from home plate mark, and tried to estimate release position. Comparing this to actual release position will help me get an idea of how accurate / inaccurate this is.
 
-<div height="50" width="50">
-    <img src="assets/ball_loc_accuracy_table.png" alt="Position Estimation Accuracy">
-</div>
+![Position Estimation Accuracy](assets/ball_loc_accuracy_table.png)
 
 # Sequencing
 
@@ -109,7 +105,7 @@ After feature engineering is done, I serialize the polars LazyFrame graph into [
 
 # Road Map
 
-- [ x ] Feature Engineering
+- [x] Feature Engineering
 - [ ] Feature Selection
 - [ ] Model Building
 - [ ] Evaluation
