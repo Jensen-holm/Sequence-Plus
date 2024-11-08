@@ -1,120 +1,54 @@
 # Sequence+
 
-The main goal of Sequence+ is to create a model like [Stuff+](), [Location+](), and [Pitcher+]() that aims to measure the run value of a pitch sequence. Sequence+ will be made using features related to tunneling, and a mix of things that are typically included in [Location+]() and [Stuff+]().
+The main goal of Sequence+ is to create a model like [Stuff+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), [Location+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), and [Pitcher+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8) that aims to measure the run value of a pitch sequence. Sequence+ will be made using features related to tunneling, and a mix of things that are typically included in Location+ & Stuff+.
 
-# Tunneling
+# General Approach
 
-Earlier this year I created [Tunnel Score]() to try and quantify how well any given two pitch sequence was tunneled. Overall it doesn't do a bad job, but it is hard to capture how 'good' a pitch was truly tunneled with just this one number. 
+I have a run expectancy matrix for 2024, that describes roughly how many runs each event in each possible situation is worth. Using this and pitch by pitch advanced data from the 2024 season, I am aiming to build a model that can predict the cumulative run expectancy for a given sequence of pitches. 
 
-In addition Tunnel Score only considers the difference between 2D locations of the ball when they cross the plate, and where they would have crossed the plate without induced movement. This could be improved by considering the 3D distance between pitches in a two pitch sequence at [decision time]() (~0.12 seconds) and [commit time]() (~0.167 seconds) into the balls flight path. 
+## Features
 
-# 3D pitch displacement calculation
+In order to try and include pitch tunneling in this model, I use the kinematic equations to estimate the location of the baseball in 3D space at the commit point, decision point, release, and over the plate.
 
-## Step 1: Time to 50ft. from home plate
+![Yu Darvish Sample](./assets/darvish_samples.png)
 
-Estimate the time it took the baseball to travel from release point to 50ft from home plate (the point where we have measurements for a &v in x, y, z dimensions)
+See [3D_pitch_location_estimation.md](./DOCS/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
 
-```math
-t_{50} = \frac{(60 + 9/12) - 50 - extension}{vft * 1.05}
-```
+Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `delta_run_exp`.
 
-Where ...
+## Feature Selection
 
-extension = distance from the rubber where the pitch was released
+Working on it ... the model I am building will be a black box, but I want to make it simple to provide input to this model. If I go with the LSTM model, I think this will probably look something like [embedded feature selection](https://arxiv.org/html/2312.17517v1#:~:text=One%20common%20approach%20for%20embedded,different%20time%20steps%20or%20features.)
 
-vft = release_speed in ft/s
+## Model
 
-I multiply the velocity by 1.05 in order to dialate the time by 5%. This makes our estimation of position more accurate because it helps account for error that we get from assuming that acceleration is constant in the kinematic equations for displacement.
+I would like to predict cumulative `delta_run_exp` with a sequence of pitches of variable length. Models that are good at problems similar to this include ...
 
-**New Features**
-- `t50`: estimated time it took the ball to get to 50ft. from home plate
-- `release_pos_y`: release position in the y dimension converted to feet
+- [RNN](https://en.wikipedia.org/wiki/Recurrent_neural_network)
+- [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory) (type of RNN) 
 
-## Step 2: x, y, & z positions at 50ft. from home plate
+...
 
-For this I use the kinematic equations with the acceleration, velocity and now our time estimate, $t_{50}$, to calculate displacement in each dimension.
+# Documentation
 
-```math
-d_{50} = r_{dim} + v_{dim} * t_{50} * \frac{1}{2} * a_{dim} * t_{50}^2
-```
-
-Where ...
-
-rdim = release position in x, y or z dimension
-
-vdim = velocity at 50ft. from home plate in x, y or z dimension
-
-adim = acceleration at 50ft. from home plate in x, y or z dimension
-
-t50 = estimated time that it took to get to 50ft. from home plate from step 1
-
-**New Features**
-- `x50`: position in the x dimension when the ball is 50ft. from home plate
-- `y50`: position in the y dimension when the ball is 50ft. from home plate
-- `z50`: position in the z dimension when the ball is 50ft. from home plate
-
-## Step 3: Estimate 3D positions at commit time & decision time
-
-Now we can make an estimate of where the ball is in all dimensions, at any given time. But I am interested specifically in 0.120 seconds after release (commit time), and 0.167 seconds after release (decision time).
-
-For this I use the same formula that I used to esimate position at 50ft. from home plate, except I start from that 50ft. mark by calculating the difference in time between $t_{50}$ and $t_{i}$.
-
-```math
-d_{i} = p_{50} + v_{50} * (t_{50} - t_{i}) * \frac{1}{2} * a_{50} * (t_{50} - t_{i})^2
-```
-
-Where ...
-
-p50 = position in x, y, or z dimension at 50 ft. from home plate
-
-I am assuming that both $v$ and $a$ are constant, again using a 5% time dilation as a crutch to help account for this.
-
-**New Features**
-- `x_0.120`: position in the x dimension at 0.120 seconds after release (commit time)
-- `y_0.120`: position in the y dimension at 0.120 seconds after release (commit time)
-- `y_0.120`: position in the z dimension at 0.120 seconds after release (commit time)
-- `x_0.167`: position in the x dimension at 0.120 seconds after release (decision time)
-- `y_0.167`: position in the y dimension at 0.120 seconds after release (decision time)
-- `y_0.167`: position in the z dimension at 0.120 seconds after release (decision time)
-- `x_plate`: position in the x dimension when the ball crossed the plate
-- `y_plate`: position in the y dimension when the ball crossed the plate
-- `z_plate`: position in the z dimension when the ball crossed the plate
-
-**Visualization & Accuracy** <br>
-In order to make sure that this works, I created a plot of some randomly sampled pitches thrown by Yu Darvish this season.
-
-- `Sweeper`: Purple
-- `Splitter`: Yellow
-- `Slider`: Green
-- `Knuckle Curve`: Blue
-- `Four Seam Fastball`: Red
-
-![Sampled Darvish 3D pitch Shape Estimations](assets/darvish_sample_pitches.png)
-
-I worked backwards from the 50ft. from home plate mark, and tried to estimate release position. Comparing this to actual release position will help me get an idea of how accurate / inaccurate this is.
-
-![Position Estimation Accuracy](assets/ball_loc_accuracy_table.png)
-
-# Sequencing
-
-Once I have this data, I map each pitch with the one that was previously thrown and add them as features with the prefix `prev_`.
-
-All of the code for both sequencing and the added features, including 3D metrics, is located in [feature_engineering.ipynb](notebooks/feature_engineering.ipynb)
-
-After feature engineering is done, I serialize the polars LazyFrame graph into [data/sequence_pitches_lf](data/sequence_pitches_lf) where I then pick it up in [notebooks/feature_selection.ipynb](notebooks/feature_selection.ipynb)
+The jupyter notebooks in the [notebooks](./notebooks/) folder are in depth with lots of markdown going through my thouhgt process at each step. Also check out the content in the [DOCS](./DOCS/) directory for a more in depth look into how and why I did things. 
 
 # Road Map
 
 - [x] Feature Engineering
-- [ ] Feature Selection
 - [ ] Model Building
 - [ ] Evaluation
 - [ ] Deploy in HuggingFace Dashboard
 
 # References
 
-[statcast-era-pitches]() <br>
-Used this huggingface dataset to effeciently load dataset of pitches thrown from 2017-present.
+- [statcast-era-pitches](https://huggingface.co/datasets/Jensen-holm/statcast-era-pitches): Used this huggingface dataset to effeciently load dataset of pitches thrown from 2017-present.
+- [Carter Kessinger](https://x.com/ckessinger44) & [Johnny Davis](https://x.com/Johnny_Davis12): These guys sparked the idea for using kinematic equations for 3D distances at commit & decision points for a better [TunnelScore]().
+- [TJ Nestico](https://x.com/TJStats): He posts lots of great content on X, and I am using a pitch by pitch run expectancy matrix found in his project [tjStuff+](https://github.com/tnestico/tjstuff_plus)
 
-[Carter Kessinger](https://x.com/ckessinger44) & [Johnny Davis](https://x.com/Johnny_Davis12)<br>
-These guys sparked the idea for using kinematic equations for 3D distances at commit & decision points for a better [TunnelScore]().
+# Contact
+
+Feel free to reach out to me with any questions or feedback 
+
+Email: jensenh87@gmail.com <br>
+X: [@\_holmj\_](https://x.com/_holmj_)
