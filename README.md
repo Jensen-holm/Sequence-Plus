@@ -15,7 +15,7 @@ In addition Tunnel Score only considers the difference between 2D locations of t
 Estimate the time it took the baseball to travel from release point to 50ft from home plate (the point where we have measurements for a &v in x, y, z dimensions)
 
 ```math
-t_{50} = \frac{(60 + 9/12) - 50 - extension}{vft * 1.05}
+t_{50} = \frac{(60 + 6/12) - 50 - extension}{vft * 1.05}
 ```
 
 Where ...
@@ -94,14 +94,6 @@ In order to make sure that this works, I created a plot of some randomly sampled
 I worked backwards from the 50ft. from home plate mark, and tried to estimate release position. Comparing this to actual release position will help me get an idea of how accurate / inaccurate this is.
 
 ![Position Estimation Accuracy](assets/ball_loc_accuracy_table.png)
-
-# Sequencing
-
-Once I have this data, I map each pitch with the one that was previously thrown and add them as features with the prefix `prev_`.
-
-All of the code for both sequencing and the added features, including 3D metrics, is located in [feature_engineering.ipynb](notebooks/feature_engineering.ipynb)
-
-After feature engineering is done, I serialize the polars LazyFrame graph into [data/sequence_pitches_lf](data/sequence_pitches_lf) where I then pick it up in [notebooks/feature_selection.ipynb](notebooks/feature_selection.ipynb)
 
 # Road Map
 
