@@ -89,7 +89,7 @@ In order to make sure that this works, I created a plot of some randomly sampled
 - `Knuckle Curve`: Blue
 - `Four Seam Fastball`: Red
 
-![Sampled Darvish 3D pitch Shape Estimations](assets/darvish_sample_pitches.png)
+![Sampled Darvish 3D pitch Shape Estimations](assets/darvish_samples.png)
 
 I worked backwards from the 50ft. from home plate mark, and tried to estimate release position. Comparing this to actual release position will help me get an idea of how accurate / inaccurate this is.
 
