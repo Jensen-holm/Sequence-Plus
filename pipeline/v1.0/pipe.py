@@ -1,53 +1,59 @@
 import polars as pl
 
-description_replace_mapping = {
-    "Ball": "ball",
-    "In play, run(s)": "hit_into_play",
-    "In play, out(s)": "hit_into_play",
-    "In play, no out": "hit_into_play",
-    "Called Strike": "called_strike",
-    "Foul": "foul",
-    "Swinging Strike": "swinging_strike",
-    "Blocked Ball": "ball",
-    "Swinging Strike (Blocked)": "swinging_strike",
-    "Foul Tip": "swinging_strike",
-    "Foul Bunt": "foul",
-    "Hit By Pitch": "hit_by_pitch",
-    "Pitchout": "ball",
-    "Missed Bunt": "swinging_strike",
-    "Bunt Foul Tip": "swinging_strike",
-    "Foul Pitchout": "foul",
-    "Ball In Dirt": "ball",
-}
 
-def add_pitch_run_value(lf: pl.LazyFrame, run_vals_lf: pl.LazyFrame) -> pl.LazyFrame:
-    """Takes in a dataframe of pitches, and adds 2024 run value to each one"""
-    pitch_runs_lf = lf.join(
-        other=run_vals_lf,
-        on=["events", "balls", "strikes"],
-        how="left",
-    )
+def _standardize_events(lf: pl.LazyFrame) -> pl.LazyFrame:
+    event_mapping = {
+        "single": "single",
+        "double": "double",
+        "triple": "triple",
+        "home_run": "home_run",
+        "field_out": "field_out",
+        "strikeout": "strikeout",
+        "walk": "walk",
+        "hit_by_pitch": "hit_by_pitch"
+    }
 
-    mapped_des_pitches = pitch_runs_lf.with_columns([
-        pl.col("description")
-        .replace_strict(description_replace_mapping, default=None)
-        .alias("play_des"),
+    description_mapping = {
+        "called_strike": "called_strike",
+        "swinging_strike": "swinging_strike",
+        "ball": "ball",
+        "foul": "foul",
+        "hit_by_pitch": "hit_by_pitch"
+    }
+    return lf.with_columns([
+        # First try to map the event
+        pl.when(pl.col("events").is_in(event_mapping.keys()))
+        .then(pl.col("events"))
+        # If no event match, try to map the description
+        .otherwise(
+            pl.when(pl.col("description").is_in(description_mapping.keys()))
+            .then(pl.col("description"))
+            # If neither matches, mark as null
+            .otherwise(None)
+        ).alias("standardized_event")
     ])
 
-    pitches_run_value_lf = mapped_des_pitches.join(
-        other=run_vals_lf,
-        right_on=["events", "balls", "strikes"],
-        left_on=["play_des", "balls", "strikes"],
-        how="left",
-        suffix="_des",
-    ).with_columns([
-        pl.when(pl.col("delta_run_exp").is_null())
-        .then(pl.col("delta_run_exp_des"))
-        .otherwise(pl.col("delta_run_exp"))
-        .alias("delta_run_exp"),
-    ])
-    return pitches_run_value_lf
+def add_pitch_run_value(pitches_lf: pl.LazyFrame, run_values_lf: pl.LazyFrame) -> pl.LazyFrame:
 
+    def join_run_values(df: pl.LazyFrame) -> pl.LazyFrame:
+        return (df
+                .join(
+                    other=run_values_lf,
+                    left_on=["standardized_event", "balls", "strikes"],
+                    right_on=["event", "balls", "strikes"],
+                    how="left",
+                )
+                # Handle missing run values
+                .with_columns([
+                    pl.when(pl.col("delta_run_exp").is_null())
+                    .then(0.0)  # Default to 0 run value for unknown events
+                    .otherwise(pl.col("delta_run_exp"))
+                    .alias("delta_run_exp")
+                ]))
+
+    return (pitches_lf
+            .pipe(_standardize_events)
+            .pipe(join_run_values))
 
 def mirror_lhp_to_rhp(lf: pl.LazyFrame) -> pl.LazyFrame:
     return lf.with_columns(
@@ -115,28 +121,6 @@ def estimate_ball_pos_at_t(lf: pl.LazyFrame, times: list[float]) -> pl.LazyFrame
         for t in times
     )
 
-prev_features = [
-    "prev_pfx_x",
-    "prev_pfx_z",
-    "prev_x_0.120",
-    "prev_y_0.120",
-    "prev_z_0.120",
-    "prev_x_0.167",
-    "prev_y_0.167",
-    "prev_z_0.167",
-    "prev_release_pos_x",
-    "prev_release_pos_y",
-    "prev_release_pos_z",
-    "prev_release_speed",
-    "prev_effective_speed",
-    "prev_release_spin_rate",
-    "prev_delta_run_exp",
-    "prev_x_plate",
-    "prev_y_plate",
-    "prev_z_plate",
-    "prev_pitch_type",
-]
-
 def two_pitch_sequences(lf: pl.LazyFrame, seq_features: list[str]) -> pl.LazyFrame:
     # sort the data such that the pitches are in descending order
     sort_cols = ["pitcher", "game_date", "at_bat_number", "pitch_number"]
@@ -168,7 +152,6 @@ def add_diff_features(lf: pl.LazyFrame, seq_features: list[str]) -> pl.LazyFrame
 def euclidean_distance(*pts):
     return sum((pt[0] - pt[1]) ** 2 for pt in pts) ** 0.5
 
-
 def add_3D_distances(lf: pl.LazyFrame, times: list[float]) -> pl.LazyFrame:
     return lf.with_columns(
         # distance over the plate
@@ -190,27 +173,3 @@ def add_3D_distances(lf: pl.LazyFrame, times: list[float]) -> pl.LazyFrame:
         ).alias(f"3d_dist_{t:.3f}")
         for t in times]
     )
-
-def add_3D_distances(lf: pl.LazyFrame, times: list[float]) -> pl.LazyFrame:
-    return lf.with_columns(
-        # distance over the plate
-        euclidean_distance(
-            *[(pl.col(f"{d}_plate"), pl.col(f"prev_{d}_plate"))
-              for d in ["x", "y", "z"]]
-        ).alias("3d_dist_plate"),
-
-        # distance at release
-        euclidean_distance(
-            *[(pl.col(f"release_pos_{d}"), pl.col(f"prev_release_pos_{d}"))
-              for d in ["x", "y", "z"]]
-        ).alias("3d_dist_release"),
-
-        # distances at given times after release
-        *[euclidean_distance(
-            *[(pl.col(f"{d}_{t:.3f}"), pl.col(f"prev_{d}_{t:.3f}"))
-             for d in ["x", "y", "z"]]
-        ).alias(f"3d_dist_{t:.3f}")
-        for t in times]
-    )
-
-
