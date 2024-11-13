@@ -4,7 +4,7 @@ The main goal of Sequence+ is to create a model like [Stuff+](https://www.google
 
 # General Approach
 
-I have a run expectancy matrix for 2024, that describes roughly how many runs each event in each possible situation is worth. Using this and pitch by pitch advanced data from the 2024 season, I am aiming to build a model that can predict the cumulative run expectancy for a given sequence of pitches. 
+I have a run expectancy matrix for 2024, that describes roughly how many runs each event in each possible situation is worth. These values are averaged out for each count, which will help isolate this run expectancy value from baserunning situations. Using this and pitch by pitch advanced data from 2020-2023, I am aiming to build a model that can predict the cumulative run expectancy for a given sequence of two pitches. This target variable is refered to as `seq_delta_run_exp` thoughout the documentation and code. 
 
 ## Features
 
@@ -14,29 +14,29 @@ In order to try and include pitch tunneling in this model, I use the kinematic e
 
 See [3D_pitch_location_estimation.md](./DOCS/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
 
-Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `delta_run_exp`.
+Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `seq_delta_run_exp`. ultimatley, the features below were the ones chosen.
 
-## Feature Selection
+![Feature Importances](assets/feature_importance.png)
 
-Working on it ... the model I am building will be a black box, but I want to make it simple to provide input to this model. If I go with the LSTM model, I think this will probably look something like [embedded feature selection](https://arxiv.org/html/2312.17517v1#:~:text=One%20common%20approach%20for%20embedded,different%20time%20steps%20or%20features.)
+The reason that 9 features were chosen specifically is because of this plot:
+
+![RFECV REsults](assets/rfecv_results.png)
+
+Recursive feature selection was done with a step of 1, and as you can see there is a clear 'elbow' in the plot at 9 features. Those 9 features were ultimatley selected for the final model.
 
 ## Model
 
-I would like to predict cumulative `delta_run_exp` with a sequence of pitches of variable length. Models that are good at problems similar to this include ...
+The model architecture that I ended up using is a LightGBM Regressor model with a RobustScaler. The RobustScaler() improves performance because it handles outliers better than StandardScaler().  
 
-- [RNN](https://en.wikipedia.org/wiki/Recurrent_neural_network)
-- [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory) (type of RNN) 
+I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly better model that I would guessing them on my own. 
 
-...
+## Evaluation
 
-# Documentation
-
-The jupyter notebooks in the [notebooks](./notebooks/) folder are in depth with lots of markdown going through my thouhgt process at each step. Also check out the content in the [DOCS](./DOCS/) directory for a more in depth look into how and why I did things. 
 
 # Road Map
 
 - [x] Feature Engineering
-- [ ] Model Building
+- [x] Model Building
 - [ ] Evaluation
 - [ ] Deploy in HuggingFace Dashboard
 
