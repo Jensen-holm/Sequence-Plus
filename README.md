@@ -32,6 +32,9 @@ I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly be
 
 ## Evaluation
 
+![Evaluation](./assets/sequence+eval.png)
+
+Sequence+ appears to be correlated to other widely used models & metrics, which is a pretty promising sign. I'll take it!
 
 # Road Map
 
