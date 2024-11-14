@@ -5,3 +5,4 @@ plotnine
 scikit-learn
 plotly
 nbformat
+gradio
