@@ -37,7 +37,7 @@ I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly be
 
 - [x] Feature Engineering
 - [x] Model Building
-- [ ] Evaluation
+- [x] Evaluation
 - [ ] Deploy in HuggingFace Dashboard
 
 # References
