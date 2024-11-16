@@ -34,7 +34,7 @@ I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly be
 
 ![Evaluation](./assets/sequence+eval.png)
 
-Sequence+ appears to be correlated to other widely used models & metrics, which is a pretty promising sign. I'll take it!
+Based on this chart, Sequence+ appears to have solid negative correlations with FIP & WHIP, and a strong positive correlation with K/BB. All this while having no correlation with Stuff+ (which is a good thing). It does appear similar to Location+ and Pitching+, which is somewhat expected because the features used to train them are likley somewhat correlated with the features used to train Sequence+.
 
 # Road Map
 
