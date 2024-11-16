@@ -18,7 +18,7 @@ Some more features related to pitch sequences and pitch quality were added that 
 
 ![Feature Importances](assets/feature_importance.png)
 
-The reason that 9 features were chosen specifically is because of this plot:
+The reason that 15 features were chosen specifically is because of this plot:
 
 ![RFECV REsults](assets/rfecv_results.png)
 
