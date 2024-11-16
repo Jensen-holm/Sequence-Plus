@@ -7,4 +7,4 @@ plotly
 nbformat
 gradio
 bs4
-
+optuna
