@@ -10,17 +10,17 @@ I have a run expectancy matrix for 2024, that describes roughly how many runs ea
 
 In order to try and include pitch tunneling in this model, I use the kinematic equations to estimate the location of the baseball in 3D space at the commit point, decision point, release, and over the plate.
 
-![Yu Darvish Sample](./assets/darvish_samples.png)
+![Yu Darvish Sample](./plots/darvish_samples.png)
 
 See [3D_pitch_location_estimation.md](./DOCS/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
 
 Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `seq_delta_run_exp`. ultimatley, the features below were the ones chosen.
 
-![Feature Importances](assets/feature_importance.png)
+![Feature Importances](plots/feature_importance.png)
 
 The reason that 15 features were chosen specifically is because of this plot:
 
-![RFECV REsults](assets/rfecv_results.png)
+![RFECV REsults](plots/rfecv_results.png)
 
 Recursive feature selection was done with a step of 1, and as you can see there is a clear 'elbow' in the plot at 9 features. Those 9 features were ultimatley selected for the final model.
 
@@ -32,7 +32,7 @@ I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly be
 
 ## Evaluation
 
-![Evaluation](./assets/sequence+eval.png)
+![Evaluation](./plots/sequence+eval.png)
 
 Based on this chart, Sequence+ appears to have solid negative correlations with FIP & WHIP, and a strong positive correlation with K/BB. All this while having no correlation with Stuff+ (which is a good thing). It does appear similar to Location+ and Pitching+, which is somewhat expected because the features used to train them are likley somewhat correlated with the features used to train Sequence+.
 
