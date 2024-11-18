@@ -12,7 +12,7 @@ In order to try and include pitch tunneling in this model, I use the kinematic e
 
 ![Yu Darvish Sample](./plots/darvish_samples.png)
 
-See [3D_pitch_location_estimation.md](./DOCS/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
+See [3D_pitch_location_estimation.md](./docs/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
 
 Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `seq_delta_run_exp`. ultimatley, the features below were the ones chosen.
 
