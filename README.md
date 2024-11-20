@@ -1,6 +1,8 @@
 # Sequence+
 
-The main goal of Sequence+ is to create a model like [Stuff+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), [Location+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), and [Pitcher+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8) that aims to measure the run value of a pitch sequence. Sequence+ will be made using features related to tunneling, and a mix of things that are typically included in Location+ & Stuff+.
+
+The main goal of Sequence+ is to create a model like [Stuff+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), [Location+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8), and [Pitcher+](https://www.google.com/search?client=safari&rls=en&q=stuff%2B&ie=UTF-8&oe=UTF-8) that aims to predict the expected run value based on any two pitch sequence. 
+
 
 # General Approach
 
@@ -14,15 +16,9 @@ In order to try and include pitch tunneling in this model, I use the kinematic e
 
 See [3D_pitch_location_estimation.md](./docs/3D_pitch_location_estimation.md) or the feature engineering section of [sequence+.ipynb](./notebooks/sequence+.ipynb) for details on how I am doing this.
 
-Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `seq_delta_run_exp`. ultimatley, the features below were the ones chosen.
+Some more features related to pitch sequences and pitch quality were added that would hopefully help explain variance in `seq_delta_run_exp`. The chart below shows the features that are currently selected, and their importances.
 
 ![Feature Importances](plots/feature_importance.png)
-
-The reason that 15 features were chosen specifically is because of this plot:
-
-![RFECV REsults](plots/rfecv_results.png)
-
-Recursive feature selection was done with a step of 1, and as you can see there is a clear 'elbow' in the plot at 9 features. Those 9 features were ultimatley selected for the final model.
 
 ## Model
 
@@ -36,12 +32,26 @@ I used [optuna](https://optuna.org) to tune hyperparameters to fit a slightly be
 
 Based on this chart, Sequence+ appears to have solid negative correlations with FIP & WHIP, and a strong positive correlation with K/BB. All this while having no correlation with Stuff+ (which is a good thing). It does appear similar to Location+ and Pitching+, which is somewhat expected because the features used to train them are likley somewhat correlated with the features used to train Sequence+.
 
+Pitchers are not always trying to tunnel their pitches, explaining the silght bimodal bump below average in the distribution of Sequence+ in 2024 shown below. 
+
+![Sequence+ Distribution plot](./plots/overall_dist.png)
+
+That being said, with the current model, Sonny Gray's Sweeper-Four Seam and George Kirby's Slider-Four Seam combo score the highest in average Sequence+ with 106 and 105 respectivley. 
+
+![Sonny Gray Sequence+ Overlay](./assets/sample_high_sequence+_overlay.gif)
+
+1. 🎥 Sonny Gray Clip Sequence+: 115
+2. 🎥 George Kirby Clip Sequence+: 117
+
+This is still a work in progress because it seems that Sequence+ could be more isolated from Location+. When taking a look at some of the top sequences by average Sequence+, there are some pitch combinations that are two of the same pitch back to back. This is an issue because how could two of the same pitch be tunneled well? I took a look at some video footage of sequences that recieved a high Sequence+, but where the same pitch back to back and from what I can tell all of these pitches were painted on the edge of the strike zone. Long story short, there is still work to be done in isolating pitch tunneling from location.
+
 # Road Map
 
 - [x] Feature Engineering
 - [x] Model Building
-- [x] Evaluation
-- [ ] Deploy in HuggingFace Dashboard
+- [ ] Evaluation
+- [ ] Article
+- [ ] Dashboard
 
 # References
 
